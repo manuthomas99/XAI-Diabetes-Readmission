@@ -15,4 +15,5 @@ if __name__ == "__main__":
     
     # Initialize DataLoader with the provided data path and test size
     data_loader = DataLoader(data_path=DATA_PATH, target_column_name=TARGET_COLUMN_NAME, test_size=args.test_size)
-    
+    data_loader.preprocess_data()
+    # data_loader.generate_plots()
