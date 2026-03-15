@@ -1,19 +1,13 @@
-import csv
+import copy
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-import random  
 from utils.data_visualizations import visualize_unique_counts
 class DataLoader:
     def __init__(self, data_path,target_column_name, test_size=0.2):
-        self.train_data = None
-        self.test_data = None
         self.data = None
         self.target_column_name = target_column_name
         self.data_path = data_path
 
         self.load_data()
-        self.train_data, self.test_data = self.test_train_split(test_size=test_size)
 
     def load_data(self):
         # Loading entire data from csv
@@ -21,20 +15,13 @@ class DataLoader:
             self.data = pd.read_csv(file,na_values=['?','None'])
         return self.data
     
-    def test_train_split(self, test_size=0.2):
-        # Split the data into train, test and validation sets
-        X = self.data.drop(self.target_column_name, axis=1) 
-        y = self.data[self.target_column_name]
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random.randint(0, 2**32 - 1))
-        self.train_data = pd.concat([X_train, y_train], axis=1)
-        self.test_data = pd.concat([X_test, y_test], axis=1)
-        return self.train_data, self.test_data
     
-    def generate_plots(self):
-        columns_to_plot = ["gender", "race", "age"]
+    def generate_plots(self, data=None):
+        if data is None:
+            data = self.data
+        columns_to_plot = ["age", "race","gender"]
         for col in columns_to_plot:
-            visualize_unique_counts(self.data, col, save_path=f"/Users/manu/Desktop/Projects/XAI-Diabetes-Readmission/Outputs/{col}_distribution.png")
+            visualize_unique_counts(data, col, save_path=f"/Users/manu/Desktop/Projects/XAI-Diabetes-Readmission/Outputs/{col}_distribution.png")
 
     def preprocess_data(self, inplace=True):
         """
@@ -45,10 +32,12 @@ class DataLoader:
         4. Scale numerical features using StandardScaler.
         """
         
-        process_data = self.data.copy()  
+        process_data = copy.deepcopy(self.data)  
 
+        process_data.drop_duplicates(subset='patient_nbr', keep='first', inplace=True) # consider feature extraction
 
-        process_data.drop_duplicates(subset='patient_nbr', keep='first', inplace=True)
+        # cols_to_check = ['chlorpropamide', 'acetohexamide', 'tolbutamide', 'acarbose', 'miglitol', 
+        # 'troglitazone', 'tolazamide', 'glyburide-metformin', 'glipizide-metformin', 'metformin-rosiglitazone', 'metformin-pioglitazone']
 
 
         columns_to_drop = ['encounter_id', 'patient_nbr', 'weight', 'payer_code', 'medical_specialty', 'A1Cresult', 'max_glu_serum']
@@ -99,14 +88,11 @@ class DataLoader:
 
         columns_to_check = ['race']
         process_data = process_data.dropna(subset=columns_to_check)
-        
-        #scaler after split
-        # scaler = StandardScaler()
-        # process_data[self.numerical_columns] = scaler.fit_transform(process_data[self.numerical_columns])
+
+        self.generate_plots(process_data) #generate plots before categorical encoding adds a lot of new columns
 
         categorical_columns = process_data.select_dtypes(include='object').columns
         process_data = pd.get_dummies(process_data, columns=categorical_columns, drop_first=False) #categorical encoder
-        #drop_first=True unless linear models like Logistic regression
 
         if inplace:
             self.data = process_data

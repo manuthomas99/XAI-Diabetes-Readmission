@@ -27,7 +27,7 @@ def visualize_unique_counts(df, column, color_palette="Blues_d", save_path=None,
 
     # ── Style ─────────────────────────────────────────────────────────────────
     plt.rcParams.update({
-        "font.family"      : "serif",          # matches most LaTeX / paper fonts
+        "font.family"      : "serif",          
         "font.serif"       : ["Times New Roman", "DejaVu Serif"],
         "font.size"        : 11,
         "axes.linewidth"   : 0.8,
