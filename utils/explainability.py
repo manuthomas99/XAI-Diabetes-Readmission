@@ -1,7 +1,7 @@
 import shap
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 def get_model_from_pipeline(pipeline):
     """Extract the final model step from an imblearn/sklearn Pipeline."""
@@ -63,20 +63,42 @@ def explain_shap(pipeline, X_train, X_test, feature_names, model_name, max_displ
     return shap_values, explainer
 
 
-def explain_shap_single(explainer, shap_values, X_test, feature_names, index=0, model_name='model'):
-    """Waterfall plot for a single prediction."""
-    X_test_df = pd.DataFrame(X_test, columns=feature_names)
-    shap.waterfall_plot(
-        shap.Explanation(
-            values=shap_values[index],
-            base_values=explainer.expected_value if not isinstance(explainer.expected_value, list)
-                        else explainer.expected_value[1],
-            data=X_test_df.iloc[index],
-            feature_names=feature_names
-        )
-    )
-    plt.title(f"SHAP Waterfall — {model_name} — sample {index}")
-    plt.tight_layout()
-    plt.savefig(f"outputs/shap_waterfall_{model_name}_sample{index}.png", dpi=150)
-    plt.close()
+def explain_shap_single(shap_explainer, shap_values, X_scaled, feature_names, index, model_name):
+    """
+    Waterfall plot for a single prediction with proper label rendering.
+    """
+    print(f"    Generating waterfall explanation for sample index: {index}")
+    
+    if isinstance(shap_values, shap.Explanation):
+        sv = shap_values[index]
+    else:
+        base_value = shap_explainer.expected_value
+        if isinstance(base_value, (list, np.ndarray)):
+            base_value = base_value[1]
+            values     = shap_values[1][index]   # class-1 SHAP values
+        else:
+            values     = shap_values[index]
 
+        sv = shap.Explanation(
+            values       = values,
+            base_values  = base_value,
+            data         = X_scaled[index],
+            feature_names= feature_names
+        )
+
+    fig, ax = plt.subplots(figsize=(12, 7))   
+
+    shap.plots.waterfall(sv, max_display=12, show=False)
+
+    
+    longest = max(len(n) for n in feature_names)
+    left_margin = min(0.45, max(0.25, longest * 0.012)) 
+
+    plt.gcf().set_size_inches(13, 7)
+    plt.gcf().subplots_adjust(left=left_margin) 
+    plt.tight_layout(rect=[left_margin, 0, 1, 1])
+
+    out_path = f"Outputs/{model_name}_shap_sample{index}.png"
+    plt.savefig(out_path, dpi=150, bbox_inches="tight")  
+    plt.close()
+    print(f"    Saved: {out_path}")

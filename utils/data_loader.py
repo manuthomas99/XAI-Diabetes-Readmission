@@ -42,11 +42,9 @@ class DataLoader:
 
         columns_to_drop = ['encounter_id', 'patient_nbr', 'weight', 'payer_code', 'medical_specialty', 'A1Cresult', 'max_glu_serum']
         process_data = process_data.drop(columns=columns_to_drop)
+        # process_data = process_data.drop(columns=cols_to_check)
 
-
-        expired_ids = [11, 13, 14, 19, 20, 21]
-        process_data = process_data[~process_data['discharge_disposition_id'].isin([str(i) for i in expired_ids])]  #Expried patients, pointless for readmission prediction
-
+        process_data = process_data.drop(columns=['discharge_disposition_id']) 
 
         process_data['readmitted'] = process_data['readmitted'].apply(lambda x: 1 if x == '<30' else 0)
 
@@ -74,6 +72,7 @@ class DataLoader:
                 elif 800 <= code <= 999: return 'Injury'
                 elif 710 <= code <= 739: return 'Musculoskeletal'
                 elif 580 <= code <= 629 or code == 788: return 'Genitourinary'
+                elif 140 <= code <= 239: return 'Neoplasms'
                 else: return 'Other'
             except:
                 return 'Other'
@@ -82,7 +81,6 @@ class DataLoader:
 
 
         process_data['admission_type_id'] = process_data['admission_type_id'].astype(str)
-        process_data['discharge_disposition_id'] = process_data['discharge_disposition_id'].astype(str)
         process_data['admission_source_id'] = process_data['admission_source_id'].astype(str)
 
 
